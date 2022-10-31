@@ -1,0 +1,122 @@
+esphome:
+  name: gas-counter-atom
+  platformio_options: 
+    upload_speed: 115200
+  on_boot:
+    priority: 100
+    then:
+     - lambda: |-
+        id(gas_counter).start();
+
+esp32:
+  board: m5stack-atom
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+ level: INFO
+ logs:
+    sensor: WARN
+    ext_threshold: INFO
+
+# Enable Home Assistant API
+api:
+  password: ""
+
+ota:
+  password: ""
+
+wifi:
+  power_save_mode: none
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Gas-Counter-Atom Fallback Hotspot"
+
+captive_portal:
+
+# Configuration of M5 Atom Lite onboard RGB LED
+light:
+  - platform: fastled_clockless
+    chipset: WS2812
+    pin: 27
+    num_leds: 1
+    rgb_order: grb
+    name: led
+    id: led
+
+sensor:
+  # Configuration of M5 Atom Lite onboard adc
+  - platform: adc
+    pin: GPIO33
+    id: optocoupler
+    internal: true
+    raw: true
+    attenuation: 11db
+    name: "input optocoupler sensor"
+    update_interval: .010s
+
+#Configure of M5 Atom Lite Onboard top button    
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: 39
+      inverted: true
+      mode:
+        input: true
+    name: button A
+    id: button_a
+    on_press:
+      then:
+        - light.turn_on:        
+            id: led
+            transition_length: 0ms
+            brightness: 100%
+            red: 0%
+            green: 100%
+            blue: 0%
+    on_release:
+      then:
+        - light.turn_off:        
+            id: led
+            transition_length: 0ms
+
+  - platform: ext_threshold
+    name: GasCounter
+    id: gas_counter
+    threshold:
+      upper: 1000
+      lower: 200
+    calibration:
+      name: calibration
+      calibration_time: 5s
+    analog:
+      name: analog
+      sensor_id: optocoupler
+    time:
+      name: pulse_time
+      internal: false
+      on_max: 1s
+      on_min: 20ms
+      off_min: 20ms
+    count:
+      name: pulse_count
+      internal: false
+    amplitude:
+      name: pulse_amplitude
+      internal: false
+    on_press:
+      then:
+        - light.turn_on:        
+            id: led
+            transition_length: 0ms
+            brightness: 50%
+            red: 100%
+            green: 0%
+            blue: 0%
+    on_release:
+      then:
+        - light.turn_off:        
+            id: led
+            transition_length: 30ms
