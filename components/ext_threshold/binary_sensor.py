@@ -16,6 +16,7 @@ ExtThresholdBinarySensor = ext_threshold_ns.class_(
 )
 
 CONF_ANALOG = "analog"          #original analog_sensor parameters
+CONF_ANALOG_FEEDBACK = "feedback"
 CONF_TIME   = "time"            #pulse time output
 CONF_AMPLITUDE  = "amplitude"   #pulse amplitude output
 CONF_COUNT  = "count"           #pulse count output
@@ -45,6 +46,7 @@ CONFIG_SCHEMA = binary_sensor.BINARY_SENSOR_SCHEMA.extend(
             ).extend(
                 {
                     cv.Required(CONF_SENSOR_ID): cv.use_id(sensor.Sensor),
+                    cv.Optional(CONF_ANALOG_FEEDBACK):  sensor.sensor_schema(),
                 }
             ),
         cv.Optional(CONF_FEEDBACK_LIGHT_ID): cv.use_id(light.AddressableLightState),
@@ -125,6 +127,9 @@ async def to_code(config):
         conf = config[CONF_ANALOG]
         sens = await cg.get_variable(conf[CONF_SENSOR_ID])
         cg.add(var.set_analog_sensor(sens))
+        if CONF_ANALOG_FEEDBACK in conf:
+            sens = await sensor.new_sensor(conf[CONF_ANALOG_FEEDBACK])
+            cg.add(var.set_adc_sensor(sens))
 
     if CONF_TIME in config:
         conf = config[CONF_TIME]

@@ -16,6 +16,11 @@ void ExtThresholdBinarySensor::setup() {
      this->treshold_state_down_time_=now;
      this->prev_delta_value_=0.0;
      this->publish_initial_state(false);
+     this->counter_sensor_->publish_state(0.0);
+     this->amplitude_sensor_->publish_state(0.0);
+     this->time_sensor_->publish_state(0.0);
+     this->adc_sensor_->publish_state(0.0);
+
      // where is the light
      for (EntityBase *obj : App.get_lights()) {
                     ESP_LOGI(TAG, "%12d| light : %s : %s",now,get_object_id().c_str(),obj->get_name().c_str());
@@ -63,11 +68,14 @@ void ExtThresholdBinarySensor::pulse(uint32_t now,uint32_t delta_time) {
 }
 
 
-void ExtThresholdBinarySensor::feedback(uint32_t now,float delta_value) {
-    if (delta_value < this->upper_threshold_) {
+void ExtThresholdBinarySensor::feedback(uint32_t now,float delta_value,float value) {
+    if (delta_value < this->upper_threshold_ && delta_value > (this->lower_threshold_/10)) {
         float procent=min(100.0,(delta_value*100.0/this->upper_threshold_));
-
-        ESP_LOGI(TAG, "%12d| feedback : %3.0f %%  delta_value=%4.1f",now,procent,delta_value);
+        //only if feedback is enabled
+        if (this->adc_sensor_ != nullptr && this->feedback_enabled_) {
+            this->adc_sensor_->publish_state(value);
+            this->amplitude_sensor_->publish_state(delta_value);
+        }
     }
 }
 
@@ -134,9 +142,9 @@ void ExtThresholdBinarySensor::on_sensor_value(float value) {
             ESP_LOGD(TAG, "%12d| down detected, value=%4.1f delta_value=%4.1f, delta_time=%d armed=%d state=%d",now,value,delta_value,delta_time,this->armed_,this->state_);
             return;
     } else {
-        if (this->prev_delta_value_ != delta_value) {
+        if (this->prev_delta_value_ != delta_value && delta_value > 10) {
             ESP_LOGD(TAG, "%12d| delta change detected, value=%4.1f delta_value=%4.1f, armed=%d threshold_state=%d state=%d",now,value,delta_value,this->armed_,this->treshold_state_,this->state_);
-            this->feedback(now,delta_value);
+            this->feedback(now,delta_value,value);
             prev_delta_value_=delta_value;
         }
     }
@@ -187,7 +195,11 @@ void ExtThresholdBinarySensor::on_sensor_value(float value) {
     //some internal stuff
     if (cnt_ % 1000 == 0) {
         delta_time=now-lastTime;
-        ESP_LOGI(TAG, "%12d| loop 1000 %d msec , value=%4.1f delta_value=%4.1f , base=%0.2f armed=%d threshold_state=%d state=%d",now,delta_time,value,delta_value,this->base_value_,this->armed_,this->treshold_state_,this->state_);
+        ESP_LOGD(TAG, "%12d| loop 1000 %d msec , value=%4.1f delta_value=%4.1f , base=%0.2f armed=%d threshold_state=%d state=%d",now,delta_time,value,delta_value,this->base_value_,this->armed_,this->treshold_state_,this->state_);
+         if (this->adc_sensor_ != nullptr) {
+            this->adc_sensor_->publish_state(value);
+            this->amplitude_sensor_->publish_state(delta_value);
+        }
         lastTime=now;
     }
 }
