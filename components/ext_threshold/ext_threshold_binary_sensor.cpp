@@ -19,7 +19,7 @@ void ExtThresholdBinarySensor::setup() {
      this->counter_sensor_->publish_state(0.0);
      this->amplitude_sensor_->publish_state(0.0);
      this->time_sensor_->publish_state(0.0);
-     this->adc_sensor_->publish_state(0.0);
+     publish_adc(0.0);
 
      // where is the light
      for (EntityBase *obj : App.get_lights()) {
@@ -79,6 +79,11 @@ void ExtThresholdBinarySensor::feedback(uint32_t now,float delta_value,float val
     }
 }
 
+void ExtThresholdBinarySensor::publish_adc(float value) {
+    if (this->adc_sensor_ != nullptr) {
+            this->adc_sensor_->publish_state(value);
+    }
+}
 
 void ExtThresholdBinarySensor::on_sensor_value(float value) {
     cnt_++;
@@ -164,6 +169,7 @@ void ExtThresholdBinarySensor::on_sensor_value(float value) {
          this->state_up_time_=now;
          ESP_LOGI(TAG, "%12d| UP STATE accepted value=%4.1f delta_value=%4.1f",now,value,delta_value);
          this->publish_state(true);
+         publish_adc(value);
          return;
     }
     else if (this->treshold_state_ && this->state_ && !this->armed_  && now >= (this->state_up_time_ + this->pulse_maximum_time_)) {
@@ -174,6 +180,7 @@ void ExtThresholdBinarySensor::on_sensor_value(float value) {
          ESP_LOGI(TAG, "%12d| UP STATE timeout  value=%4.1f delta_value=%4.1f , delta_time=%d",now,value,delta_value,delta_time);
          pulse(now,delta_time);
          this->publish_state(false);
+         publish_adc(value);
          return;
     }
     else if (!this->treshold_state_ && !this->armed_ && now >= (this->treshold_state_down_time_ + this->pulse_off_time_)) {
@@ -183,6 +190,7 @@ void ExtThresholdBinarySensor::on_sensor_value(float value) {
                 uint32_t delta_time=now - this->state_up_time_;
                 ESP_LOGI(TAG, "%12d| DOWN STATE accepted value=%4.1f delta_value=%4.1f, delta_time=%d",now,value,delta_value,delta_time);
                 pulse(now,delta_time);
+                publish_adc(value);
                 this->publish_state(false);
          } else {
             uint32_t delta_time=now - this->state_down_time_;
@@ -196,9 +204,7 @@ void ExtThresholdBinarySensor::on_sensor_value(float value) {
     if (cnt_ % 1000 == 0) {
         delta_time=now-lastTime;
         ESP_LOGD(TAG, "%12d| loop 1000 %d msec , value=%4.1f delta_value=%4.1f , base=%0.2f armed=%d threshold_state=%d state=%d",now,delta_time,value,delta_value,this->base_value_,this->armed_,this->treshold_state_,this->state_);
-         if (this->adc_sensor_ != nullptr) {
-            this->adc_sensor_->publish_state(value);
-        }
+        publish_adc(value);
         lastTime=now;
     }
 }

@@ -39,8 +39,13 @@ class ExtThresholdBinarySensor : public binary_sensor::BinarySensor, public Comp
   void set_pulse_off_time(uint16_t timeout)     { this->pulse_off_time_ = timeout; }
 
   void set_armed(bool armed) {this->armed_ = armed;}
-
   void on_sensor_value(float value);
+
+  //access internal sensor values
+  float get_counter() { return this->counter_sensor_->state; }
+  float get_pulse_amplitutde() { return this->amplitude_sensor_->state; }
+  float get_pulse_time() { return this->time_sensor_->state; }
+  float get_calibration() { return this->calibration_sensor_->state; }
 
  protected:
 
@@ -69,6 +74,7 @@ class ExtThresholdBinarySensor : public binary_sensor::BinarySensor, public Comp
 
   void pulse(uint32_t now,uint32_t delta_time);
   void feedback(uint32_t now,float delta_value,float value);
+  void publish_adc(float value);
 
   bool armed_;
   bool treshold_state_;
