@@ -198,7 +198,6 @@ void ExtThresholdBinarySensor::on_sensor_value(float value) {
         ESP_LOGD(TAG, "%12d| loop 1000 %d msec , value=%4.1f delta_value=%4.1f , base=%0.2f armed=%d threshold_state=%d state=%d",now,delta_time,value,delta_value,this->base_value_,this->armed_,this->treshold_state_,this->state_);
          if (this->adc_sensor_ != nullptr) {
             this->adc_sensor_->publish_state(value);
-            this->amplitude_sensor_->publish_state(delta_value);
         }
         lastTime=now;
     }
